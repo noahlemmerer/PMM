@@ -33,3 +33,5 @@ daten_massiert <- mutate(daten,iok = if_else(
 ```{r}
 daten_massiert
 ```
+
+Änderung 8:50
