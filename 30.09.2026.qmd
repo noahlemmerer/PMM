@@ -1,0 +1,35 @@
+---
+title: "PMM 30.09.2026"
+format: html
+editor: visual
+---
+
+## Bsp Ausschuss
+
+```{r}
+daten <- read.csv(r"(C:\Users\noahl\OneDrive - HTL Spengergasse\Dokumente\HTL Spengergasse\5AHWIT\PMM\GRG-PMM\assets\betriebsdaten.csv)")
+```
+
+```{r}
+View(daten)
+```
+
+```{r}
+daten
+```
+
+```{r}
+library(tidyverse)
+glimpse(daten)
+```
+
+```{r}
+daten_massiert <- mutate(daten,iok = if_else(
+    is.na(masse_mm), NA,
+    if_else(abs(masse_mm - 10) > 0.15,
+            "ausserhalb", "in_Toleranz")))
+```
+
+```{r}
+daten_massiert
+```
