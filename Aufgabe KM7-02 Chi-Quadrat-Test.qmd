@@ -1,0 +1,182 @@
+---
+title: "Aufgabe KM7-02 — Der Chi-Quadrat-Test"
+author: "Name"
+date: today
+lang: de
+format:
+  html:
+    toc: true
+    number-sections: false
+    embed-resources: true
+execute:
+  echo: true
+  warning: true
+  message: false
+---
+
+Sollmaß 10,00 mm, Toleranz ± 0,15 mm. Lektüre: Navarro, Kap. 12.
+
+## 0. Der Datensatz
+
+```{r}
+#| label: setup
+library(tidyverse)
+
+# Pfad ggf. an dein Projekt anpassen
+daten <- read_csv(r"(C:\Users\noahl\OneDrive - HTL Spengergasse\Dokumente\HTL Spengergasse\5AHWIT\PMM\PMM-VS\GRG-PMM\assets\betriebsdaten.csv)") |>
+  mutate(iok = if_else(is.na(masse_mm), NA,
+                       if_else(abs(masse_mm - 10) > 0.15,
+                               "ausserhalb", "in_Toleranz")))
+
+tab <- table(daten$maschine, daten$iok)
+addmargins(tab)
+```
+
+## 1. Vorhersagen (ohne R)
+
+**a)** Die Tabelle enthält insgesamt **116** gültige Messungen. Es sind nicht 120, weil 4 Messungen fehlen (NA). `table()` lässt NA standardmäßig weg.
+
+**b)** Erwartet M1 außerhalb:
+
+$$
+\text{erwartet}_{M1,\,außen} = \frac{37 \cdot 6}{116} = 1{,}91
+$$
+
+```{r}
+37 * 6 / 116 
+39 * 6 / 116 
+40 * 6 / 116 
+```
+
+**c)** Die drei Zellen der Spalte „außerhalb" (1,91 / 2,02 / 2,07) liegen unter 5. Das sind 3 von 6 Zellen, also 50 %. Die 80-%-Regel ist **nicht erfüllt**. Daraus folgt der **exakte Test nach Fisher** (`fisher.test`).
+
+## 2. Die Teststatistik von Hand
+
+$$
+\chi^2 = \sum \frac{(\text{beobachtet} - \text{erwartet})^2}{\text{erwartet}}
+$$
+
+**a)** Beiträge in der Spalte „außerhalb":
+
+| Zelle        | beobachtet | erwartet | Beitrag |
+|--------------|-----------:|---------:|--------:|
+| M1 außerhalb |          0 |    1,914 |   1,914 |
+| M2 außerhalb |          0 |    2,017 |   2,017 |
+| M3 außerhalb |          6 |    2,069 |   7,469 |
+
+Die Spalte in_Toleranz trägt nur 0,104 / 0,110 / 0,407 bei.
+
+**b)** Vergleich mit R:
+
+```{r}
+erwartet <- outer(rowSums(tab), colSums(tab)) / sum(tab)
+round(erwartet, 3)
+round((tab - erwartet)^2 / erwartet, 4)
+
+sum((tab - erwartet)^2 / erwartet)   # Summe der Beiträge
+chisq.test(tab)$statistic
+```
+
+Summe der Beiträge = 12,02 = `chisq.test(tab)$statistic`.
+
+Am stärksten weicht die Handrechnung in der Zelle **M3 außerhalb** ab. Der Nenner (2,07) ist dort klein und die Differenz wird quadriert. Deshalb schlagen Rundungsfehler beim erwarteten Wert dort am stärksten durch.
+
+**c)** Den größten Beitrag liefert **M3 außerhalb** (7,47). Entscheidend ist der **kleine Nenner**. Dieselbe absolute Abweichung (≈ 3,9) bringt in der Spalte in_Toleranz (erwartet ≈ 38) nur 0,41. Alle „außerhalb"-Zellen haben kleine Nenner. Innerhalb dieser Spalte gewinnt M3, weil dort die absolute Abweichung am größten ist. Relativ betrachtet weichen M1 und M2 mit −100 % sogar stärker ab, aber 0 gegenüber 1,9 ist absolut wenig.
+
+## 3. Der Unabhängigkeitstest
+
+```{r}
+chisq.test(tab)
+fisher.test(tab)
+```
+
+-   X² = 12,02, df = 2
+-   p-Wert (Chi) = 0,0025
+-   p-Wert (Fisher) ≈ 0,003
+
+Warum die beiden leicht abweichen: Der Chi-Quadrat-Test nähert die Verteilung über die stetige Chi-Quadrat-Verteilung an. Das ist nur bei großen erwarteten Häufigkeiten gut. Fisher rechnet exakt über die hypergeometrische Verteilung.
+
+**a)** $df = (3 - 1) \cdot (2 - 1) = 2$
+
+**b)** Warnung: *„Chi-squared approximation may be incorrect"*. In der deutschen R-Version lautet sie: *„Chi-Quadrat-Approximation kann inkorrekt sein"*.
+
+**c)** Wären Maschine und Toleranz-Ergebnis unabhängig, würde man eine so große oder noch größere Abweichung nur mit einer Wahrscheinlichkeit von **0,0025** (0,25 %) erhalten. Da 0,0025 \< 0,05 ist, wird **H0 verworfen**: Die Ausschussquote hängt von der Maschine ab. Dieses Ergebnis gilt mit Vorbehalt, siehe Aufgabe 5.
+
+## 4. Der Anpassungstest
+
+Der Kunde gibt eine Sollquote von 10 % Ausschuss vor.
+
+```{r}
+quoten <- daten |>
+  filter(!is.na(masse_mm)) |>
+  group_by(maschine) |>
+  summarise(n = n(), aus = sum(iok == "ausserhalb"),
+            .groups = "drop") |>
+  mutate(in_toleranz = n - aus)
+quoten
+
+anpassung <- lapply(split(quoten, quoten$maschine), function(q) {
+  suppressWarnings(
+    chisq.test(c(q$in_toleranz, q$aus), p = c(0.9, 0.1)))
+})
+anpassung
+```
+
+**a)**
+
+| Maschine | beobachtet |   erwartet |   X² | p-Wert |
+|----------|-----------:|-----------:|-----:|-------:|
+| M1       |     37 / 0 | 33,3 / 3,7 | 4,11 |  0,043 |
+| M2       |     39 / 0 | 35,1 / 3,9 | 4,33 |  0,037 |
+| M3       |     34 / 6 | 36,0 / 4,0 | 1,11 |  0,292 |
+
+**b)** Statistisch auffällig sind **M1 und M2** (p \< 0,05), nicht M3. Beide haben **weniger** Ausschuss als die Sollquote (0 statt 3,7 bzw. 3,9) und sind damit besser als 10 %. Der p-Wert zeigt keine Richtung an. Die Richtung erkennt man erst im Vergleich von beobachtet und erwartet bzw. an den Residuen:
+
+```{r}
+sapply(anpassung, function(t) t$residuals)
+```
+
+**c)** Der Anpassungstest prüft nur, ob die beobachtete Verteilung zur vorgegebenen Sollverteilung passt, und bewertet die Sollquote selbst nicht. Ein nicht signifikantes Ergebnis heißt daher nicht, dass der Prozess gut ist, sondern nur, dass die Abweichung von 10 % Zufall sein kann. Außerdem betrachtet er nur die Gut/Schlecht-Zählung und sagt nichts über Lage, Streuung oder Stabilität der Maße aus.
+
+**d)**
+
+-   *Beantwortet:* ob die Ausschussquote der jeweiligen Maschine signifikant von 10 % abweicht.
+-   *Beantwortet nicht:* ob sich die Maschinen untereinander unterscheiden, in welche Richtung sie abweichen, und ob bzw. warum M3 „schlecht" ist.
+
+## 5. Voraussetzungen prüfen
+
+```{r}
+round(erwartet, 2)
+mean(erwartet < 5)   # Anteil der Zellen < 5
+```
+
+**a)** Unter 5 liegen M1 außerhalb (1,91), M2 außerhalb (2,02) und M3 außerhalb (2,07). Das sind 3 von 6 Zellen, also **50 %**.
+
+**b)** Die 80-%-Regel ist **nicht erfüllt** (nur 50 % der Zellen sind ≥ 5). Der p-Wert 0,0025 beruht auf einer Näherung, die hier nicht trägt, und ist nur ein Richtwert. Verlässlich ist der exakte Fisher-Test (p ≈ 0,003). Die Entscheidung, H0 zu verwerfen, bleibt dieselbe.
+
+**c)** Der Anpassungstest ohne `suppressWarnings()`:
+
+```{r}
+chisq.test(c(quoten$in_toleranz[1], quoten$aus[1]), p = c(0.9, 0.1))
+```
+
+Die Warnung lautet wieder *„Chi-squared approximation may be incorrect"*. Der Grund: Erwartet werden nur 3,7 / 3,9 / 4,0 Ausschussteile, also hat **jede** Maschine eine Zelle unter 5. Damit sind alle p-Werte aus Aufgabe 4 nur Näherungen. Bei M1 und M2 liegen sie knapp unter 0,05, die Signifikanz ist also wackelig. Eine exakte Alternative ist der Binomialtest (vgl. KM5-02):
+
+```{r}
+mapply(function(k, n) binom.test(k, n, p = 0.1)$p.value,
+       quoten$aus, quoten$n)
+```
+
+Er liefert ca. 0,048 / 0,030 / 0,287. Die Schlussfolgerung bleibt gleich, ist aber knapp.
+
+## 6. Kapitel-Check (Navarro Kap. 12)
+
+**a)** Voraussetzungen:
+
+1.  **Ausreichend große erwartete Häufigkeiten** (mind. 80 % ≥ 5): **nicht erfüllt**, nur 50 %.
+2.  **Unabhängige Beobachtungen** (jedes Teil zählt einmal, Teile beeinflussen sich nicht): **plausibel erfüllt**, bei Serienfertigung (Werkzeugverschleiß, zeitliche Abhängigkeit) aber fraglich.
+3.  **Kategoriale Daten, jeder Fall in genau einer Zelle**: **erfüllt**. Die Kategorien sind Maschine × in/außerhalb Toleranz, NA ist ausgeschlossen.
+
+**b)** Der **Unabhängigkeitstest** fragt, ob zwei kategoriale Merkmale zusammenhängen, hier also ob die Ausschussquote bei allen Maschinen gleich ist. Der **Anpassungstest** fragt, ob *ein* Merkmal einer vorgegebenen Verteilung folgt, hier also ob die Quote einer Maschine den 10 % Soll entspricht. In R sieht man den Unterschied am Aufruf: `chisq.test(tab)` mit einer Kreuztabelle für den Unabhängigkeitstest, `chisq.test(x, p = c(0.9, 0.1))` mit einem Vektor plus `p` für den Anpassungstest.
+
+**c)** Nein. Die 0,0025 stammt aus dem Unabhängigkeitstest. Der sagt nur, *dass* sich die Maschinen unterscheiden, aber nicht welche und in welche Richtung, und wegen der kleinen erwarteten Häufigkeiten ist er zudem unsicher. Im Anpassungstest gegen 10 % ist M3 gar nicht signifikant (p = 0,29); auffällig sind nur M1 und M2, und zwar nach unten, sie sind also besser als das Soll.
