@@ -1,0 +1,107 @@
+## Noah Lemmerer UE1 penguins
+
+##  1. Setup + erstes Ritual
+
+Die Pakete müssen nur einmal installiert werden, daher wird dieser Block nicht ausgeführt:
+
+```{r}
+#| eval: false
+install.packages(c("tidyverse", "palmerpenguins"))
+```
+
+```{r}
+#| message: false
+library(tidyverse)
+library(palmerpenguins)
+
+glimpse(penguins)
+```
+
+-   **Zeilen (Pinguine):** 344
+-   **Spalten:** 8
+-   **Typ von `species`:** `<fct>` (Faktor, also kategorial)
+-   **Typ von `body_mass_g`:** `<int>` (ganze Zahl)
+
+## 2. Die Einstiegsfrage nachbauen
+
+```{r}
+ggplot(penguins,
+       aes(x = flipper_length_mm, y = body_mass_g, color = species)) +
+  geom_point() +
+  labs(x = "Flossengröße (mm)", y = "Körpermasse (g)")
+```
+
+-   **Steigt die Körpermasse mit der Flossengröße für alle drei Arten?** Ja, bei allen drei ist der Zusammenhang positiv und annähernd linear.
+-   **Welche Art ist am schwersten?** Gentoo, mit im Mittel rund 5076 g (Adelie rund 3701 g, Chinstrap rund 3733 g).
+
+Die Warnung `Removed 2 rows containing missing values` ist kein Fehler: Bei zwei Pinguinen fehlen Werte.
+
+## 3. Vorhersagen
+
+### a) Unterschied der beiden Zeilen
+
+**Vorhersage:** Die Punkte liegen in beiden Plots gleich. In Zeile 1 sind alle rot und es gibt keine Legende, weil die Farbe fix *gesetzt* ist. In Zeile 2 bekommt jede Art automatisch eine eigene Farbe und es gibt eine Legende, weil `species` auf die Farbe *gemappt* ist.
+
+```{r}
+ggplot(penguins, aes(x = species, y = body_mass_g)) + geom_point(color = "red")
+ggplot(penguins, aes(x = species, y = body_mass_g, color = species)) + geom_point()
+```
+
+**R-Ergebnis (erwartet):** Wie vorhergesagt, jeweils mit der Warnung zu den 2 fehlenden Zeilen.
+
+### b) `+` am Zeilenanfang
+
+**Vorhersage:** Zeile 1 ist für sich vollständig und zeichnet nur ein leeres Koordinatensystem mit der x-Achse `body_mass_g`. Zeile 2 läuft separat und ergibt einen Fehler, es entsteht also kein Histogramm.
+
+Der Fehler ist hier beabsichtigt. Mit `error: true` wird er im Dokument angezeigt, ohne das Rendern abzubrechen.
+
+```{r}
+#| error: true
+ggplot(penguins, aes(x = body_mass_g))
+  + geom_histogram(binwidth = 250)
+```
+
+**R-Ergebnis (erwartet):** Ein leerer Plot und sinngemäß dieser Fehler (Wortlaut je nach Version):
+
+```         
+Cannot use `+` with a single argument
+Did you accidentally put `+` on a new line?
+```
+
+## 4. Eine eigene Frage finden
+
+**Meine Frage:** Haben Pinguine mit längeren Schnäbeln auch tiefere Schnäbel?
+
+```{r}
+#| message: false
+ggplot(penguins, aes(x = bill_length_mm, y = bill_depth_mm)) +
+  geom_point(aes(color = species)) +
+  geom_smooth() +
+  labs(
+    x = "Schnabellänge (mm)",
+    y = "Schnabeltiefe (mm)",
+    color = "Art"
+  )
+```
+
+**Was zeigt der Plot? (erwartet)** Über alle Pinguine hinweg sinkt die Schnabeltiefe tendenziell mit der Schnabellänge, wenn auch nur schwach. Innerhalb jeder Art steigt sie aber, und der negative Gesamttrend entsteht erst durch die Mischung der Arten, weil Gentoos lange, aber flache Schnäbel haben (Simpson-Paradoxon).
+
+Zur Gegenprobe zeichnet dieser Plot eine Glättungslinie je Art:
+
+```{r}
+#| message: false
+ggplot(penguins, aes(x = bill_length_mm, y = bill_depth_mm, color = species)) +
+  geom_point() +
+  geom_smooth() +
+  labs(
+    x = "Schnabellänge (mm)",
+    y = "Schnabeltiefe (mm)",
+    color = "Art"
+  )
+```
+
+## 5. Kapitel-Check (Kapitel 2: Workflow: basics)
+
+**Warum steht das `+` am Zeilenende?** Endet eine Zeile mit `+`, ist der Ausdruck unvollständig und R liest in der nächsten Zeile weiter (in der Konsole zeigt das der `+`-Prompt). Steht das `+` am Zeilenanfang, gilt die erste Zeile schon als fertig und wird ausgeführt, und das zweite `+` hat nur noch ein Argument. R meldet dann den Fehler aus 3b.
+
+**Warum `<-` in einem Skript?** Mit `<-` bekommt ein Wert einen Namen, sodass ich ihn weiterverwenden kann, ohne ihn neu zu berechnen. Das Skript hält alle Schritte fest, sodass ich die Analyse jederzeit wiederholen und korrigieren kann, während Eingaben in der Konsole schwer nachvollziehbar bleiben.
