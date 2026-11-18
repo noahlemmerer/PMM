@@ -1,6 +1,6 @@
 ## Noah Lemmerer UE1 penguins
 
-##  1. Setup + erstes Ritual
+## 1. Setup + erstes Ritual
 
 Die Pakete müssen nur einmal installiert werden, daher wird dieser Block nicht ausgeführt:
 
@@ -17,10 +17,10 @@ library(palmerpenguins)
 glimpse(penguins)
 ```
 
--   **Zeilen (Pinguine):** 344
--   **Spalten:** 8
--   **Typ von `species`:** `<fct>` (Faktor, also kategorial)
--   **Typ von `body_mass_g`:** `<int>` (ganze Zahl)
+- **Zeilen (Pinguine):** 344
+- **Spalten:** 8
+- **Typ von `species`:** `<fct>` (Faktor, also kategorial)
+- **Typ von `body_mass_g`:** `<int>` (ganze Zahl)
 
 ## 2. Die Einstiegsfrage nachbauen
 
@@ -31,8 +31,8 @@ ggplot(penguins,
   labs(x = "Flossengröße (mm)", y = "Körpermasse (g)")
 ```
 
--   **Steigt die Körpermasse mit der Flossengröße für alle drei Arten?** Ja, bei allen drei ist der Zusammenhang positiv und annähernd linear.
--   **Welche Art ist am schwersten?** Gentoo, mit im Mittel rund 5076 g (Adelie rund 3701 g, Chinstrap rund 3733 g).
+- **Steigt die Körpermasse mit der Flossengröße für alle drei Arten?** Ja, bei allen drei ist der Zusammenhang positiv und annähernd linear.
+- **Welche Art ist am schwersten?** Gentoo, mit im Mittel rund 5076 g (Adelie rund 3701 g, Chinstrap rund 3733 g).
 
 Die Warnung `Removed 2 rows containing missing values` ist kein Fehler: Bei zwei Pinguinen fehlen Werte.
 

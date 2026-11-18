@@ -90,9 +90,9 @@ chisq.test(tab)
 fisher.test(tab)
 ```
 
--   X² = 12,02, df = 2
--   p-Wert (Chi) = 0,0025
--   p-Wert (Fisher) ≈ 0,003
+- X² = 12,02, df = 2
+- p-Wert (Chi) = 0,0025
+- p-Wert (Fisher) ≈ 0,003
 
 Warum die beiden leicht abweichen: Der Chi-Quadrat-Test nähert die Verteilung über die stetige Chi-Quadrat-Verteilung an. Das ist nur bei großen erwarteten Häufigkeiten gut. Fisher rechnet exakt über die hypergeometrische Verteilung.
 
@@ -140,8 +140,8 @@ sapply(anpassung, function(t) t$residuals)
 
 **d)**
 
--   *Beantwortet:* ob die Ausschussquote der jeweiligen Maschine signifikant von 10 % abweicht.
--   *Beantwortet nicht:* ob sich die Maschinen untereinander unterscheiden, in welche Richtung sie abweichen, und ob bzw. warum M3 „schlecht" ist.
+- *Beantwortet:* ob die Ausschussquote der jeweiligen Maschine signifikant von 10 % abweicht.
+- *Beantwortet nicht:* ob sich die Maschinen untereinander unterscheiden, in welche Richtung sie abweichen, und ob bzw. warum M3 „schlecht" ist.
 
 ## 5. Voraussetzungen prüfen
 
